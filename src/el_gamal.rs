@@ -20,13 +20,17 @@ impl ElGamal {
         }
     }
 
+    pub fn pk(&self) -> u32 {
+        self.pk
+    }
+
     pub fn keygen(&mut self) {
-        self.sk = random_range(..self.q);
+        self.sk = random_range(0..self.q);
         self.pk = modexp(self.g, self.sk, self.p);
     }
 
     pub fn encrypt(&self, m: u32) -> (u32, u32) {
-        let r = random_range(..self.q);
+        let r = random_range(0..self.q);
         let c1 = modmul(
             m,
             modexp(self.pk, r, self.p),
@@ -34,6 +38,10 @@ impl ElGamal {
         );
         let c2 = modexp(self.g, r, self.p);
         return (c1, c2)
+    }
+
+    pub fn re_encrypt(&self, e: (u32, u32)) -> (u32, u32) {
+        self.multiply_ciphertexts(e, self.encrypt(1))
     }
 
     pub fn decrypt(&self, ciphertext: (u32, u32)) -> u32 {

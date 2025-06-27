@@ -1,27 +1,32 @@
-use mixnet_rust::{el_gamal::ElGamal, utils::*};
+use mixnet_rust::{el_gamal::ElGamal, shuffle::Shuffle, utils::*, N};
+use rand::random_range;
 
 fn main() {
-    let (p, q) = safe_prime(0, 2_u32.pow(31)).unwrap();
-    let mut g = rand::random_range(..p);
+    let (p, q) = safe_prime(2_u32.pow(31)).unwrap();
+    let mut g = random_range(0..p);
     g = modexp(g, 2, p);
 
     let mut el_gamal = ElGamal::new(p, q, g);
     el_gamal.keygen();
 
-    let mut m1 = rand::random_range(..p);
-    m1 = modexp(m1, 2, p);
-    let ciphertext1 = el_gamal.encrypt(m1);
+    let mut h_list: [u32; N] = [0; N];
+    for i in 0..N {
+        let mut h = random_range(0..p);
+        h = modmul(h, 2, p);
+        h_list[i] = h;
+    }
 
-    let mut m2 = rand::random_range(..p);
-    m2 = modexp(m2, 2, p);
-    let ciphertext2 = el_gamal.encrypt(m2);
+    let mut shuffle = Shuffle::new(p, q, g, h_list, el_gamal.pk());
 
-    let combined = el_gamal.multiply_ciphertexts(ciphertext1, ciphertext2);
+    let plaintext_list: [u32; N] = core::array::from_fn(|i| modexp(i as u32 + 1, 2, p));
+    let ciphertext_list_1: [(u32, u32); N] = core::array::from_fn(|i| el_gamal.encrypt(plaintext_list[i]));
 
-    let decrypted = el_gamal.decrypt(combined);
+    println!("plaintext: {:?}", plaintext_list);
+    println!("ciphertext: {:?}", ciphertext_list_1);
 
-    println!("message: {m1} {m2}");
-    println!("encrypted 1: {:?}", ciphertext1);
-    println!("encrypted 2: {:?}", ciphertext2);
-    println!("combined decrypted: {decrypted}");
+    let (ciphertext_list_2, random_list, psi) = shuffle.gen_shuffle(ciphertext_list_1);
+    println!("shuffled: {:?}", ciphertext_list_2);
+
+    let decrypted_list: [u32; N] = core::array::from_fn(|i| el_gamal.decrypt(ciphertext_list_2[i]));
+    println!("shuffled & decrypted: {:?}", decrypted_list);
 }

@@ -21,7 +21,7 @@ pub fn is_prime(n: u32) -> bool {
 
 pub fn safe_prime(size: u32) -> Option<(u32, u32)> {
     loop {
-        let q = random_range(..size);
+        let q = random_range(0..size);
         let p = 2 * q + 1;
 
         if is_prime(p) && is_prime(q) {

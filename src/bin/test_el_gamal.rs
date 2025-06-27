@@ -3,18 +3,18 @@ use rand::random_range;
 
 fn main() {
     let (p, q) = safe_prime(2_u32.pow(31)).unwrap();
-    let mut g = random_range(..p);
+    let mut g = random_range(0..p);
     g = modexp(g, 2, p);
 
     let mut el_gamal = ElGamal::new(p, q, g);
     el_gamal.keygen();
 
-    let mut m1 = random_range(..p);
+    let mut m1 = random_range(0..p);
     m1 = modexp(m1, 2, p);
     let ciphertext1 = el_gamal.encrypt(m1);
     let dec1 = el_gamal.decrypt(ciphertext1);
 
-    let mut m2 = random_range(..p);
+    let mut m2 = random_range(0..p);
     m2 = modexp(m2, 2, p);
     let ciphertext2 = el_gamal.encrypt(m2);
     let dec2 = el_gamal.decrypt(ciphertext2);
