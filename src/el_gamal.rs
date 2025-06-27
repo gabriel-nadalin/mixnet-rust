@@ -1,4 +1,5 @@
 use crate::utils::*;
+use rand::random_range;
 
 pub struct ElGamal {
     p: u32,
@@ -20,12 +21,12 @@ impl ElGamal {
     }
 
     pub fn keygen(&mut self) {
-        self.sk = rand::random_range(..self.q);
+        self.sk = random_range(..self.q);
         self.pk = modexp(self.g, self.sk, self.p);
     }
 
     pub fn encrypt(&self, m: u32) -> (u32, u32) {
-        let r = rand::random_range(..self.q);
+        let r = random_range(..self.q);
         let c1 = modmul(
             m,
             modexp(self.pk, r, self.p),

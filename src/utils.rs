@@ -1,3 +1,5 @@
+use rand::random_range;
+
 pub fn is_prime(n: u32) -> bool {
     if n <= 1 {
         return false;
@@ -17,16 +19,15 @@ pub fn is_prime(n: u32) -> bool {
     true
 }
 
-pub fn safe_prime(min: u32, max: u32) -> Option<(u32, u32)> {
-    for _ in 0..10000 {
-        let q = rand::random_range(min..max);
+pub fn safe_prime(size: u32) -> Option<(u32, u32)> {
+    loop {
+        let q = random_range(..size);
         let p = 2 * q + 1;
 
         if is_prime(p) && is_prime(q) {
             return Some((p, q))
         }
     }
-    return None
 }
 
 pub fn modmul(a: u32, b: u32, modulus: u32) -> u32 {
