@@ -1,4 +1,4 @@
-use crate::utils::*;
+use crate::{utils::*, Ciphertext};
 use rand::random_range;
 
 pub struct ElGamal {
@@ -29,7 +29,7 @@ impl ElGamal {
         self.pk = modexp(self.g, self.sk, self.p);
     }
 
-    pub fn encrypt(&self, m: u32) -> (u32, u32) {
+    pub fn encrypt(&self, m: u32) -> Ciphertext {
         let r = random_range(0..self.q);
         let c1 = modmul(
             m,
@@ -40,11 +40,11 @@ impl ElGamal {
         return (c1, c2)
     }
 
-    pub fn re_encrypt(&self, e: (u32, u32)) -> (u32, u32) {
+    pub fn re_encrypt(&self, e: Ciphertext) -> Ciphertext {
         self.multiply_ciphertexts(e, self.encrypt(1))
     }
 
-    pub fn decrypt(&self, ciphertext: (u32, u32)) -> u32 {
+    pub fn decrypt(&self, ciphertext: Ciphertext) -> u32 {
         let (c1, c2) = ciphertext;
         return modmul(
             c1,
@@ -56,7 +56,7 @@ impl ElGamal {
         )
     }
 
-    pub fn multiply_ciphertexts(&self, c: (u32, u32), d: (u32, u32)) -> (u32, u32) {
+    pub fn multiply_ciphertexts(&self, c: Ciphertext, d: Ciphertext) -> Ciphertext {
         let (c1, c2) = c;
         let (d1, d2) = d;
         let r1 = modmul(c1, d1, self.p);

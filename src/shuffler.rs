@@ -1,4 +1,4 @@
-use crate::{utils::{hash, modexp, modinv, modmul}, N};
+use crate::{utils::{hash, modexp, modinv, modmul}, Ciphertext, Proof, N};
 use rand::random_range;
 
 pub struct Shuffler {
@@ -32,7 +32,7 @@ impl Shuffler {
         return psi
     }
 
-    pub fn gen_shuffle(&self, e_list: [(u32, u32); N]) -> ([(u32, u32); N], [u32; N], [usize; N]) {
+    pub fn gen_shuffle(&self, e_list: [Ciphertext; N]) -> ([Ciphertext; N], [u32; N], [usize; N]) {
         let mut e_prime_list = [(0, 0); N];
         let mut r_list = [0; N];
         let psi = Self::gen_permutation();
@@ -94,16 +94,11 @@ impl Shuffler {
 
     pub fn gen_proof(
         &self,
-        e_list: [(u32, u32); N],
-        e_prime_list: [(u32, u32); N],
+        e_list: [Ciphertext; N],
+        e_prime_list: [Ciphertext; N],
         r_prime_list: [u32; N],
         psi: [usize; N]
-    ) -> (
-        (u32, u32, u32, (u32, u32), [u32; 10]),
-        (u32, u32, u32, u32, [u32; 10], [u32; 10]),
-        u32,
-        [u32; 10]
-    ) {
+    ) -> Proof {
         let (c_list, r_list) = self.gen_commitment(psi);
         let mut u_list = [0; N];
 
@@ -185,6 +180,6 @@ impl Shuffler {
         }
         let s = (s0, s1, s2, s3, s_hat_list, s_prime_list);
 
-        return (t, s, c, c_hat_list)
+        return (t, s, c_list, c_hat_list)
     }
 }
