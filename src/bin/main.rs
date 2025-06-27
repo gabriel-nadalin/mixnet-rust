@@ -1,4 +1,4 @@
-use mixnet_rust::{el_gamal::ElGamal, shuffle::Shuffle, utils::*, N};
+use mixnet_rust::{el_gamal::ElGamal, shuffler::Shuffler, utils::*, N};
 use rand::random_range;
 
 fn main() {
@@ -16,7 +16,7 @@ fn main() {
         h_list[i] = h;
     }
 
-    let mut shuffle = Shuffle::new(p, q, g, h_list, el_gamal.pk());
+    let shuffler = Shuffler::new(p, q, g, h_list, el_gamal.pk());
 
     let plaintext_list: [u32; N] = core::array::from_fn(|i| modexp(i as u32 + 1, 2, p));
     let ciphertext_list_1: [(u32, u32); N] = core::array::from_fn(|i| el_gamal.encrypt(plaintext_list[i]));
@@ -24,8 +24,15 @@ fn main() {
     println!("plaintext: {:?}", plaintext_list);
     println!("ciphertext: {:?}", ciphertext_list_1);
 
-    let (ciphertext_list_2, random_list, psi) = shuffle.gen_shuffle(ciphertext_list_1);
+    let (ciphertext_list_2, random_list, psi) = shuffler.gen_shuffle(ciphertext_list_1);
+    let proof = shuffler.gen_proof(
+        ciphertext_list_1,
+        ciphertext_list_2,
+        random_list,
+        psi
+    );
     println!("shuffled: {:?}", ciphertext_list_2);
+    println!("proof: {:?}", proof);
 
     let decrypted_list: [u32; N] = core::array::from_fn(|i| el_gamal.decrypt(ciphertext_list_2[i]));
     println!("shuffled & decrypted: {:?}", decrypted_list);

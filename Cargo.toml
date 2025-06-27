@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 num-primes = "0.3.0"
 rand = "0.9.1"
+sha2 = "0.10.9"
