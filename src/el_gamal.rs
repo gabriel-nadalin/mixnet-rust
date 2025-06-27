@@ -1,6 +1,3 @@
-use rand::prelude::*;
-use num_primes::Generator;
-
 use crate::utils::*;
 
 pub struct ElGamal {
@@ -38,8 +35,8 @@ impl ElGamal {
         return (c1, c2)
     }
 
-    pub fn decrypt(&self, cyphertext: (u32, u32)) -> u32 {
-        let (c1, c2) = cyphertext;
+    pub fn decrypt(&self, ciphertext: (u32, u32)) -> u32 {
+        let (c1, c2) = ciphertext;
         return modmul(
             c1,
             modinv(
@@ -48,5 +45,13 @@ impl ElGamal {
             ).unwrap(),
             self.p
         )
+    }
+
+    pub fn multiply_ciphertexts(&self, c: (u32, u32), d: (u32, u32)) -> (u32, u32) {
+        let (c1, c2) = c;
+        let (d1, d2) = d;
+        let r1 = modmul(c1, d1, self.p);
+        let r2 = modmul(c2, d2, self.p);
+        return (r1, r2)
     }
 }

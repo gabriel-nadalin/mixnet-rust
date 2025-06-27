@@ -1,5 +1,3 @@
-use rand::prelude::*;
-
 pub fn is_prime(n: u32) -> bool {
     if n <= 1 {
         return false;
@@ -73,14 +71,4 @@ pub fn modexp(base: u32, mut exp: u32, modulus: u32) -> u32 {
         exp /= 2;
     }
     result as u32
-}
-
-pub fn find_generator(p: u32, q: u32) -> u32 {
-    loop {
-        let h = rand::random_range(2..p - 1);
-        let g = modexp(h, 2, p); // g ∈ G_q
-        // if modexp(g, q, p) == 1 && modexp(g, 2, p) != 1 {
-            return g;
-        // }
-    }
 }
