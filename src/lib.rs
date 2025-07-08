@@ -3,7 +3,7 @@ pub mod el_gamal;
 pub mod shuffler;
 pub mod verifier;
 
-pub const N: usize = 10;
+pub const N: usize = 3;
 
 type Ciphertext = (u32, u32);
-type Proof = ((u32, u32, u32, (u32, u32), [u32; 10]), (u32, u32, u32, u32, [u32; 10], [u32; 10]), [u32; 10], [u32; 10]) ;
+type Proof = ((u32, u32, u32, (u32, u32), [u32; N]), (u32, u32, u32, u32, [u32; N], [u32; N]), [u32; N], [u32; N]);

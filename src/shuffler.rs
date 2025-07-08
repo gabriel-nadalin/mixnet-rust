@@ -1,5 +1,6 @@
-use crate::{utils::{hash, modexp, modinv, modmul}, Ciphertext, Proof, N};
+use crate::{utils::{hash, modexp, modinv, modmul, prod}, Ciphertext, Proof, N};
 use rand::random_range;
+use core::array::from_fn;
 
 pub struct Shuffler {
     p: u32,
@@ -21,7 +22,7 @@ impl Shuffler {
     }
 
     pub fn gen_permutation() -> [usize; N] {
-        let mut i_aux: [usize; N] = core::array::from_fn(|i| i);
+        let mut i_aux: [usize; N] = from_fn(|i| i);
         let mut psi: [usize; N] = [0; N];
 
         for i in 0..N {
@@ -29,33 +30,44 @@ impl Shuffler {
             psi[i] = i_aux[k];
             i_aux[k] = i_aux[i];
         }
+
+        // println!("psi = {:?}", psi);
+        // psi = [2, 0, 1];
+
         return psi
     }
 
     pub fn gen_shuffle(&self, e_list: [Ciphertext; N]) -> ([Ciphertext; N], [u32; N], [usize; N]) {
         let mut e_prime_list = [(0, 0); N];
-        let mut r_list = [0; N];
+        let mut r_prime_list = [0; N];
         let psi = Self::gen_permutation();
 
         for i in 0..N {
             let (a, b) = e_list[i];
 
             let r_prime = random_range(0..self.q);
-            let a_prime = modmul(a,
+            let a_prime = modmul(
+                a,
                 modexp(self.pk, r_prime, self.p),
                 self.p
             );
-            let b_prime = modmul(b,
+            let b_prime = modmul(
+                b,
                 modexp(self.g, r_prime, self.p),
                 self.p
             );
             let e_prime = (a_prime, b_prime);
 
             e_prime_list[psi[i]] = e_prime;
-            r_list[i] = r_prime;
+            r_prime_list[i] = r_prime;
         }
+        
+        // println!("e_prime_list = {:?}", e_prime_list);
+        // println!("r_prime_list = {:?}", r_prime_list);
+        // e_prime_list = [(1578266218, 1916620270), (360773426, 1178012281), (2058523096, 973473543)];
+        // r_prime_list = [516560446, 500833335, 910637767];
 
-        return (e_prime_list, r_list, psi)
+        return (e_prime_list, r_prime_list, psi)
     }
 
     pub fn gen_commitment(&self, psi: [usize; N]) -> ([u32; N], [u32; N]) {
@@ -72,6 +84,12 @@ impl Shuffler {
             r_list[psi[i]] = r;
             c_list[psi[i]] = c;
         }
+
+        // println!("r_list = {:?}", r_list);
+        // println!("c_list = {:?}", c_list);
+        // r_list = [110642671, 387776617, 582817700];
+        // c_list = [1266380428, 988165380, 984017313];
+        
         return (c_list, r_list)
     }
 
@@ -89,6 +107,12 @@ impl Shuffler {
             r_list[i] = r;
             c_list[i] = c;
         }
+
+        // println!("r_list = {:?}", r_list);
+        // println!("c_list = {:?}", c_list);
+        // r_list = [943942851, 295173641, 177345215];
+        // c_list = [885028112, 247338767, 1093213663];
+
         return (c_list, r_list)
     }
 
@@ -103,12 +127,10 @@ impl Shuffler {
         let mut u_list = [0; N];
 
         for i in 0..N {
-            let statement = format!("{:?}{:?}{:?}{}", e_list, e_prime_list, c_list, i);
-            let u = hash(&statement);
-
-            u_list[i] = u;
+            u_list[i] = hash(((e_list, e_prime_list, c_list), i), self.q);
         }
-        let u_prime_list: [u32; N] = core::array::from_fn(|i| u_list[psi[i]]);
+        // println!("us: {:?}", u_list);
+        let u_prime_list: [u32; N] = from_fn(|i| u_list[psi[i]]);
 
         let (c_hat_list, r_hat_list) = self.gen_commitment_chain(self.h_list[0], u_prime_list);
 
@@ -132,40 +154,63 @@ impl Shuffler {
             r_prime = (r_prime + modmul(r_prime_list[i], u_list[i], self.q)) % self.q;
         }
 
-        let w_list: [u32; 4] = core::array::from_fn(|_| random_range(0..self.q));
-        let w_hat_list: [u32; N] = core::array::from_fn(|_| random_range(0..self.q));
-        let w_prime_list: [u32; N] = core::array::from_fn(|_| random_range(0..self.q));
+        let w_list: [u32; 4] = from_fn(|_| random_range(0..self.q));
+        let w_hat_list: [u32; N] = from_fn(|_| random_range(0..self.q));
+        let w_prime_list: [u32; N] = from_fn(|_| random_range(0..self.q));
+
+        // println!("w_list = {:?}", w_list);
+        // println!("w_hat_list = {:?}", w_hat_list);
+        // println!("w_prime_list = {:?}", w_prime_list);
+        // let w_list = [444114685, 983386847, 837519233, 396362824];
+        // let w_hat_list = [150625670, 704677671, 787117332];
+        // let w_prime_list = [302079174, 251299983, 1020180444];
 
         let t0 = modexp(self.g, w_list[0], self.p);
         let t1 = modexp(self.g, w_list[1], self.p);
-        let mut t2 = modexp(self.g, w_list[2], self.p);
-        for i in 0..N {
-            t2 = modmul(
-                t2,
-                modexp(self.h_list[i], w_prime_list[i], self.p),
+        let t2 = modmul(
+            modexp(self.g, w_list[2], self.p),
+            prod(
+                from_fn(|i| modexp(self.h_list[i], w_prime_list[i], self.p)),
                 self.p
-            );
-        }
-        let mut t3_0 = modinv(modexp(self.pk, w_list[3], self.p), self.p).unwrap();
-        let mut t3_1 = modinv(modexp(self.g, w_list[3], self.p), self.p).unwrap();
-        for i in 0..N {
-            t3_0 = modmul(t3_0, modexp(e_prime_list[i].0, w_prime_list[i], self.p), self.p);
-            t3_1 = modmul(t3_1, modexp(e_prime_list[i].1, w_prime_list[i], self.p), self.p);
-        }
+            ), self.p
+        );
+        let t3_0 = modmul(
+            modinv(
+                modexp(self.pk, w_list[3], self.p),
+                self.p
+            ).unwrap(),
+            prod(
+                from_fn(|i| modexp(e_prime_list[i].0, w_prime_list[i], self.p)),
+                self.p
+            ),
+            self.p
+        );
+        let t3_1 = modmul(
+            modinv(
+                modexp(self.g, w_list[3], self.p),
+                self.p
+            ).unwrap(),
+            prod(
+                from_fn(|i| modexp(e_prime_list[i].1, w_prime_list[i], self.p)),
+                self.p
+            ),
+            self.p
+        );
+        // println!("teste: {}-{}-{:?}-{:?}", self.g, w_list[3], e_prime_list, w_prime_list);
 
-        let c_hat_0 = self.h_list[0];
         let mut t_hat_list = [0; N];
         for i in 0..N {
             t_hat_list[i] = modmul(
                 modexp(self.g, w_hat_list[i], self.p),
-                modmul(if i == 0 {c_hat_0} else {c_hat_list[i-1]}, w_prime_list[i], self.p),
+                modexp(if i == 0 {self.h_list[0]} else {c_hat_list[i-1]}, w_prime_list[i], self.p),
                 self.p
             );
         }
 
         let y = (e_list, e_prime_list, c_list, c_hat_list, self.pk);
         let t = (t0, t1, t2, (t3_0, t3_1), t_hat_list);
-        let c = hash(&format!("{:?}{:?}", y, t));
+        let c = hash((y, t), self.q);
+        // println!("cs: {:?}", c);
 
         let s0 = (w_list[0] + modmul(c, r_bar, self.q)) % self.q;
         let s1 = (w_list[1] + modmul(c, r_hat, self.q)) % self.q;
@@ -179,7 +224,8 @@ impl Shuffler {
             s_prime_list[i] = (w_prime_list[i] + modmul(c, u_prime_list[i], self.q)) % self.q;
         }
         let s = (s0, s1, s2, s3, s_hat_list, s_prime_list);
-
+        // println!("ts    = {:?}", t);
+        // println!("ss    = {:?}", s);
         return (t, s, c_list, c_hat_list)
     }
 }

@@ -1,5 +1,7 @@
 use rand::random_range;
-use sha2::{Digest, Sha512};
+use std::hash::{Hash, Hasher, DefaultHasher};
+
+use crate::N;
 
 pub fn is_prime(n: u32) -> bool {
     if n <= 1 {
@@ -31,14 +33,14 @@ pub fn safe_prime(size: u32) -> Option<(u32, u32)> {
     }
 }
 
-pub fn modmul(a: u32, b: u32, modulus: u32) -> u32 {
-    ((a as u64 * b as u64) % modulus as u64) as u32
+pub fn modmul(a: u32, b: u32, modulo: u32) -> u32 {
+    ((a as u64 * b as u64) % modulo as u64) as u32
 }
 
-pub fn modinv(a: u32, modulus: u32) -> Option<u32> {
+pub fn modinv(a: u32, modulo: u32) -> Option<u32> {
     let mut t = 0;
     let mut new_t = 1;
-    let mut r = modulus as i64;
+    let mut r = modulo as i64;
     let mut new_r = a as i64;
 
     while new_r != 0 {
@@ -51,17 +53,17 @@ pub fn modinv(a: u32, modulus: u32) -> Option<u32> {
         return None
     }
     if t < 0 {
-        t = t + modulus as i64;
+        t = t + modulo as i64;
     }
     return Some(t as u32)
 }
 
-pub fn modexp(base: u32, mut exp: u32, modulus: u32) -> u32 {
-    if modulus == 1 {
+pub fn modexp(base: u32, mut exp: u32, modulo: u32) -> u32 {
+    if modulo == 1 {
         return 0
     }
     let mut b = base as u64;
-    let m = modulus as u64;
+    let m = modulo as u64;
     let mut result = 1;
 
     b %= m;
@@ -75,11 +77,16 @@ pub fn modexp(base: u32, mut exp: u32, modulus: u32) -> u32 {
     result as u32
 }
 
-pub fn hash(text: &str) -> u32 {
-    let digest = Sha512::digest(text.as_bytes());
+pub fn hash<T: Hash>(t: T, modulo: u32) -> u32 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    (s.finish() % modulo as u64) as u32
+}
 
-    // taking 4 leftmost bytes from hash; not ideal, can be solved using BigInt
-    let mut bytes = [0u8; 4];
-    bytes.copy_from_slice(&digest[0..4]);
-    return u32::from_be_bytes(bytes)
+pub fn prod(list: [u32; N], modulo: u32) -> u32 {
+    let mut result = 1;
+    for i in 0..N {
+        result = modmul(result, list[i], modulo);
+    }
+    result
 }
