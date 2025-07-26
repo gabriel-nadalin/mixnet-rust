@@ -3,7 +3,7 @@ use rand::random_range;
 
 fn main() {
     let (p, q) = safe_prime(2_u32.pow(31)).unwrap();
-    let mut g = random_range(0..p);
+    let mut g = random_range(2..p-1);
     g = modexp(g, 2, p);
 
     // println!("let (p, q, g) = ({p}, {q}, {g});");
@@ -17,7 +17,7 @@ fn main() {
 
     let mut h_list: [u32; N] = [0; N];
     for i in 0..N {
-        let mut h = random_range(0..p);
+        let mut h = random_range(2..p-1);
         h = modexp(h, 2, p);
         h_list[i] = h;
     }

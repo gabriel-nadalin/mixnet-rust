@@ -39,6 +39,7 @@ impl Shuffler {
 
     pub fn gen_shuffle(&self, e_list: [Ciphertext; N]) -> ([Ciphertext; N], [u32; N], [usize; N]) {
         let mut e_prime_list = [(0, 0); N];
+        let mut e_prime_tmp = [(0, 0); N];
         let mut r_prime_list = [0; N];
         let psi = Self::gen_permutation();
 
@@ -58,9 +59,14 @@ impl Shuffler {
             );
             let e_prime = (a_prime, b_prime);
 
-            e_prime_list[psi[i]] = e_prime;
+            e_prime_tmp[i] = e_prime;
             r_prime_list[i] = r_prime;
         }
+
+        for i in 0..N {
+            e_prime_list[i] = e_prime_tmp[psi[i]];
+        }
+
         
         // println!("e_prime_list = {:?}", e_prime_list);
         // println!("r_prime_list = {:?}", r_prime_list);
