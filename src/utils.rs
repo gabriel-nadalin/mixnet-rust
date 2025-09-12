@@ -1,92 +1,62 @@
-use rand::random_range;
+use crypto_bigint::{Encoding, RandomMod, rand_core::OsRng};
+use num_primes::{BigUint, Generator};
 use std::hash::{Hash, Hasher, DefaultHasher};
+use core::array::from_fn;
 
-use crate::N;
+use crate::{N, Ciphertext, Number, NumberNZ, ModNumber, ModNumberParams, SIZE};
 
-pub fn is_prime(n: u32) -> bool {
-    if n <= 1 {
-        return false;
-    }
-    if n == 2 {
-        return true;
-    }
-    if n % 2 == 0 {
-        return false;
-    }
-    let limit = (n as f32).sqrt() as u32 + 1;
-    for i in (3..limit).step_by(2) {
-        if n % i == 0 {
-            return false;
-        }
-    }
-    true
+pub fn biguint_to_uint(n: &BigUint) -> Number {
+    let n_bytes = n.to_bytes_be();
+    let mut n_array = [0; Number::BYTES];
+    n_array[Number::BYTES - n_bytes.len()..].copy_from_slice(&n_bytes);
+    Number::from_be_bytes(n_array)
 }
 
-pub fn safe_prime(size: u32) -> Option<(u32, u32)> {
+// To make compatible with hash
+pub fn modnumber_to_number (list: [ModNumber; N]) -> [Number; N] {
+    from_fn(|i| list[i].retrieve())
+}
+
+// To make compatible with hash
+pub fn ciphertext_to_number (list: [Ciphertext; N]) -> [(Number, Number); N] {
+    from_fn(|i| (list[i].0.retrieve(), list[i].1.retrieve()))
+}
+
+pub fn get_random(n: &NumberNZ) -> Option<Number> {
+    return Some(Number::random_mod(&mut OsRng, &n))
+}
+
+pub fn get_generator(n: &ModNumberParams) -> Option<ModNumber> {
+    let mut temp_g: Number;
     loop {
-        let q = random_range(0..size);
-        let p = 2 * q + 1;
-
-        if is_prime(p) && is_prime(q) {
-            return Some((p, q))
+        temp_g = get_random(n.modulus().as_nz_ref()).unwrap();
+        if temp_g > Number::ONE {
+            break;
         }
     }
+    let g = ModNumber::new(&temp_g, *n); 
+    g.square();
+    return Some(g)
 }
 
-pub fn modmul(a: u32, b: u32, modulo: u32) -> u32 {
-    ((a as u64 * b as u64) % modulo as u64) as u32
+pub fn safe_prime() -> Option<(ModNumberParams, Number)> {
+    let temp_p: BigUint = Generator::safe_prime(SIZE);
+    let temp_q: BigUint = (&temp_p - 1u32) >> 1;
+    let p = ModNumberParams::new_vartime(biguint_to_uint(&temp_p).to_odd().unwrap());
+    let q = biguint_to_uint(&temp_q);
+    return Some((p,q))
 }
 
-pub fn modinv(a: u32, modulo: u32) -> Option<u32> {
-    let mut t = 0;
-    let mut new_t = 1;
-    let mut r = modulo as i64;
-    let mut new_r = a as i64;
-
-    while new_r != 0 {
-        let q = r / new_r;
-        (t, new_t) = (new_t, t - q * new_t);
-        (r, new_r) = (new_r, r - q * new_r);
-    }
-
-    if r > 1 {
-        return None
-    }
-    if t < 0 {
-        t = t + modulo as i64;
-    }
-    return Some(t as u32)
-}
-
-pub fn modexp(base: u32, mut exp: u32, modulo: u32) -> u32 {
-    if modulo == 1 {
-        return 0
-    }
-    let mut b = base as u64;
-    let m = modulo as u64;
-    let mut result = 1;
-
-    b %= m;
-    while exp > 0 {
-        if exp % 2 == 1 {
-            result = result * b % m;
-        }
-        b = b * b % m;
-        exp /= 2;
-    }
-    result as u32
-}
-
-pub fn hash<T: Hash>(t: T, modulo: u32) -> u32 {
+pub fn hash<T: Hash>(t: T) -> Number {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
-    (s.finish() % modulo as u64) as u32
+    Number::from_u64(s.finish())
 }
 
-pub fn prod(list: [u32; N], modulo: u32) -> u32 {
-    let mut result = 1;
+pub fn prod(list: [ModNumber; N], modulo: ModNumberParams) -> ModNumber {
+    let result = ModNumber::new(&Number::ONE, modulo);
     for i in 0..N {
-        result = modmul(result, list[i], modulo);
+        result.mul(&list[i]);
     }
     result
 }
