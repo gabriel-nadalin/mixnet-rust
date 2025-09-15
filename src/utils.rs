@@ -1,7 +1,7 @@
 use rand::random_range;
 use std::hash::{Hash, Hasher, DefaultHasher};
 
-use crate::N;
+use crate::{groups::Group, N};
 
 pub fn is_prime(n: u32) -> bool {
     if n <= 1 {
@@ -22,6 +22,7 @@ pub fn is_prime(n: u32) -> bool {
     true
 }
 
+// retorna um primo seguro e a ordem do grupo (p = 2*q + 1)
 pub fn safe_prime(size: u32) -> Option<(u32, u32)> {
     loop {
         let q = random_range(0..size);
@@ -81,6 +82,10 @@ pub fn hash<T: Hash>(t: T, modulo: u32) -> u32 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     (s.finish() % modulo as u64) as u32
+}
+
+pub fn hash_to_scalar<G: Group>(msg: &str, group: &G) -> G::Scalar {
+    todo!()
 }
 
 pub fn prod(list: [u32; N], modulo: u32) -> u32 {
