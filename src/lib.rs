@@ -1,7 +1,7 @@
 use crypto_bigint::{Uint, NonZero, modular::{MontyForm, MontyParams}};
 
 pub mod utils;
-// pub mod traits;
+pub mod traits;
 // pub mod groups;
 pub mod el_gamal;
 pub mod shuffler;
