@@ -1,19 +1,15 @@
 use e2easy_pc::{
     e2easy::E2Easy,
-    io_helpers::{read_json, write_json_to_file},
+    io_helpers::{read_json, write_json},
     pedersen::Pedersen, types::*,
     utils::{derive_nonces, hash2str}
 };
 
 fn main() {
-    // let (p, q, g) = U32ModGroup::get_group_params();
-    // let group = U32ModGroup::new(p, q, g);
-    // let pedersen = Pedersen::new(h)
-
     let election_config: ElectionConfig = read_json("./config/election_config.json").unwrap();
-    let (h, h_list) = (election_config.crypto.h, election_config.crypto.h_list);
+    let (h, h_list_seed) = (election_config.crypto.h, election_config.crypto.h_list_seed);
     
-    let mut e2easy = E2Easy::new(&h, h_list);
+    let mut e2easy = E2Easy::new(&h, h_list_seed, None);
     let pedersen = Pedersen::new(&h);
 
 
@@ -139,13 +135,8 @@ fn main() {
     
     let (rdv_prime, rdcv, rdcv_prime, zkp_output) = e2easy.tally();
 
-    write_json_to_file(&rdv_prime, "./outputs/rdv_prime.json").unwrap();
-    write_json_to_file(&rdcv, "./outputs/rdcv.json").unwrap();
-    write_json_to_file(&rdcv_prime, "./outputs/rdcv_prime.json").unwrap();
-    write_json_to_file(&zkp_output, "./outputs/zkp_output.json").unwrap();
-
-    write_json_to_file(&e2easy.sign(&rdv_prime), "./outputs/rdv_prime.sig").unwrap();
-    write_json_to_file(&e2easy.sign(&rdcv), "./outputs/rdcv.sig").unwrap();
-    write_json_to_file(&e2easy.sign(&rdcv_prime), "./outputs/rdcv_prime.sig").unwrap();
-    write_json_to_file(&e2easy.sign(&zkp_output), "./outputs/zkp_output.sig").unwrap();
+    write_json(&rdv_prime,  "./outputs/rdv_prime.json",  Some(&e2easy.sign(&rdv_prime))).unwrap();
+    write_json(&rdcv,       "./outputs/rdcv.json",        Some(&e2easy.sign(&rdcv))).unwrap();
+    write_json(&rdcv_prime, "./outputs/rdcv_prime.json",  Some(&e2easy.sign(&rdcv_prime))).unwrap();
+    write_json(&zkp_output, "./outputs/zkp_output.json",  Some(&e2easy.sign(&zkp_output))).unwrap();
 }

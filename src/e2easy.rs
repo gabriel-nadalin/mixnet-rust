@@ -9,14 +9,14 @@ use crate::{
     pedersen::Pedersen,
     shuffler::Shuffler,
     types::*,
-    utils::{derive_nonces, hash2str, random_scalar}
+    utils::{derive_h_list, derive_nonces, hash2str, random_scalar}
 };
 
 
 #[derive_ReprC]
 #[repr(opaque)]
 pub struct E2Easy {
-    h_list: Vec<Element>,
+    h_list_seed: String,
     pedersen: Pedersen,
     sig_key: SigningKey,
     rdcv: RDCV,
@@ -27,23 +27,19 @@ pub struct E2Easy {
 }
 
 impl E2Easy {
-    // seria possivel combinar setup() e start() em new()?
-    pub fn new(h: &Element, h_list: Vec<Element>) -> Self {
+    pub fn new(h: &Element, h_list_seed: String, sig_key: Option<SigningKey>) -> Self {
+        let q = "E2Easy-PC|v1|P-256|SHA-256|Pedersen|ECDSA-P256";
+        let prev_tracking_code = hash2str(q);
         Self {
-            h_list,
+            h_list_seed,
             pedersen: Pedersen::new(h),
-            sig_key: SigningKey::random(&mut OsRng),
-            rdcv: RDCV::new(hash2str("start")),
+            sig_key: sig_key.unwrap_or(SigningKey::random(&mut OsRng)),
+            rdcv: RDCV::new(prev_tracking_code.clone()),
             m_list: Vec::new(),
             r_list: Vec::new(),
             temp_ballot: None,
-            // TODO: criat string de configuracao Q para a cauda do RDCV
-            prev_tracking_code: hash2str("start"),
+            prev_tracking_code,
         }
-    }
-
-    pub fn start() {
-        todo!()
     }
 
     pub fn vote(&mut self, votes: Vec<Vote>) -> (String, String) {
@@ -67,7 +63,7 @@ impl E2Easy {
         let tracking_code = hash2str(&to_hash);
         
         self.temp_ballot = Some(TempBallot::new(scalar_votes, committed_votes, nonce_seed, timestamp.clone(), tracking_code.clone()));
-        (tracking_code.clone(), timestamp.clone())
+        (tracking_code, timestamp)
     }
 
     pub fn challenge(&mut self) -> (String, Vec<Element>, Scalar) {
@@ -85,7 +81,7 @@ impl E2Easy {
         self.m_list.extend_from_slice(&ballot.scalar_votes());
         self.r_list.extend_from_slice(&derive_nonces(&ballot.nonce_seed(), ballot.scalar_votes().len()));
 
-        self.prev_tracking_code = ballot.tracking_code().clone();
+        self.prev_tracking_code = ballot.tracking_code();
         
         signature
     }
@@ -96,9 +92,9 @@ impl E2Easy {
         self.rdcv.set_head(head);
         
         let c_list = self.rdcv.votes();
-        let h_list: Vec<Element> = self.h_list.iter().take(c_list.len()).cloned().collect();
-
-        let shuffler = Shuffler::new(h_list.clone());
+        let h_list: Vec<Element> = derive_h_list(&self.h_list_seed, c_list.len());
+        
+        let shuffler = Shuffler::new(h_list);
 
         let (c_prime_list, r_prime_list, psi) = shuffler.gen_shuffle(&c_list);
 
@@ -121,10 +117,6 @@ impl E2Easy {
         let zkp = ZKPOutput::new(*self.sig_key.verifying_key(), s_proof, shuffled_m_list, shuffled_r_list);
 
         (rdv_prime, rdcv, rdcv_prime, zkp)
-    }
-
-    pub fn finish() {
-        todo!()
     }
 
     pub fn sign<T: Serialize>(&mut self, value: &T) -> Signature {

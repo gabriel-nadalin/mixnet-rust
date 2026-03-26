@@ -3,12 +3,12 @@ use e2easy_pc::{io_helpers::{read_json, request_user_input}, pedersen::Pedersen,
 fn main() {
     
     println!("Verificando um voto individual");
-    let tc = request_user_input("Insira o tracking code: ");
-    let voto1 = request_user_input("Insira o voto para presidente: ");
-    let voto2 = request_user_input("Insira o voto para governador: ");
-    let previous_hash = request_user_input("Insira o hash anterior: ");
-    let nonce = request_user_input("Insira o nonce: ");
-    let timestamp = request_user_input("Insira o carimbo de tempo: ");
+    let tc = request_user_input("Insira o tracking code: ").unwrap();
+    let voto1 = request_user_input("Insira o voto para presidente: ").unwrap();
+    let voto2 = request_user_input("Insira o voto para governador: ").unwrap();
+    let previous_hash = request_user_input("Insira o hash anterior: ").unwrap();
+    let nonce = request_user_input("Insira o nonce: ").unwrap();
+    let timestamp = request_user_input("Insira o carimbo de tempo: ").unwrap();
     println!("Verificando o voto...");
     
     let election_config: ElectionConfig = read_json("./config/election_config.json").unwrap();

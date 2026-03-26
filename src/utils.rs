@@ -1,13 +1,12 @@
 use hex::ToHex;
-use p256::{FieldBytes, ProjectivePoint, U256, elliptic_curve::{Field, PrimeField, ops::Reduce}};
+use p256::{FieldBytes, NistP256, ProjectivePoint, elliptic_curve::{Field, Group, PrimeField, hash2curve::{ExpandMsgXmd, GroupDigest}}};
 use serde::Serialize;
-use crate::{Scalar, Element, G};
+use crate::{Scalar, Element};
 use sha2::{Digest, Sha256};
 use rand_core::OsRng;
 
 pub fn random_element() -> Element {
-    let randomizer: Scalar = Scalar::random(&mut OsRng);
-    return (G * randomizer).into()
+    return ProjectivePoint::random(&mut OsRng).to_affine()
 }
 
 pub fn random_scalar() -> Scalar {
@@ -45,6 +44,15 @@ pub fn derive_nonces(seed: &Scalar, count: usize) -> Vec<Scalar> {
     nonces
 }
 
+pub fn derive_h_list(seed: &str, count: usize) -> Vec<Element> {
+    let mut h_list = Vec::with_capacity(count);
+    for i in 0..count {
+        let to_hash = (seed, i);
+        h_list.push(hash2element(&to_hash));
+    }
+    h_list
+}
+
 /// hashes a serializable object into a hex string
 pub fn hash2str<T: Serialize + ?Sized>(obj: &T) -> String {
     Sha256::digest(serde_json_canonicalizer::to_vec(&obj).unwrap()).encode_hex_upper()
@@ -52,6 +60,12 @@ pub fn hash2str<T: Serialize + ?Sized>(obj: &T) -> String {
 
 /// hashes a serializable object into a scalar
 pub fn hash2scalar<T: Serialize + ?Sized>(obj: &T) -> Scalar {
-    let digest = Sha256::digest(serde_json_canonicalizer::to_vec(&obj).unwrap());
-    <Scalar as Reduce<U256>>::reduce_bytes(&FieldBytes::from(digest))
+    let data = serde_json_canonicalizer::to_vec(&obj).unwrap();
+    NistP256::hash_to_scalar::<ExpandMsgXmd<sha2::Sha256>>(&[&data], &[b"E2EASY-PC/NONCE/V1"]).unwrap()
+}
+
+/// hashes a serializable object into a scalar
+pub fn hash2element<T: Serialize + ?Sized>(obj: &T) -> Element {
+    let data = serde_json_canonicalizer::to_vec(&obj).unwrap();
+    NistP256::hash_from_bytes::<ExpandMsgXmd<sha2::Sha256>>(&[&data], &[b"E2EASY-PC/HLIST/V1"]).unwrap().to_affine()
 }

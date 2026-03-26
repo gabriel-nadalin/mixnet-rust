@@ -2,7 +2,7 @@ use e2easy_pc::Element;
 use e2easy_pc::io_helpers::read_json;
 use e2easy_pc::pedersen::Pedersen;
 use e2easy_pc::types::*;
-use e2easy_pc::utils::hash2str;
+use e2easy_pc::utils::{derive_h_list, hash2str};
 use p256::ecdsa::Signature;
 use p256::ecdsa::signature::Verifier;
 
@@ -16,10 +16,10 @@ fn main() {
     let rdcv_prime: RDCVPrime = read_json("./outputs/rdcv_prime.json").unwrap();
     let zkp_output: ZKPOutput = read_json("./outputs/zkp_output.json").unwrap();
 
-    let rdv_prime_sig: Signature = read_json("./outputs/rdv_prime.sig").unwrap();
-    let rdcv_sig: Signature = read_json("./outputs/rdcv.sig").unwrap();
-    let rdcv_prime_sig: Signature = read_json("./outputs/rdcv_prime.sig").unwrap();
-    let zkp_output_sig: Signature = read_json("./outputs/zkp_output.sig").unwrap();
+    let rdv_prime_sig: Signature = read_json("./outputs/rdv_prime.sig.json").unwrap();
+    let rdcv_sig: Signature = read_json("./outputs/rdcv.sig.json").unwrap();
+    let rdcv_prime_sig: Signature = read_json("./outputs/rdcv_prime.sig.json").unwrap();
+    let zkp_output_sig: Signature = read_json("./outputs/zkp_output.sig.json").unwrap();
 
     let tail = rdcv.tail();
     let commit_list = rdcv.votes();
@@ -30,7 +30,7 @@ fn main() {
     let pi = zkp_output.shuffle_proof;
 
     let h = election_config.crypto.h;
-    let h_list: Vec<Element> = election_config.crypto.h_list.iter().take(rdcv_prime.entries().len()).cloned().collect();
+    let h_list: Vec<Element> = derive_h_list(&election_config.crypto.h_list_seed, rdcv_prime.entries().len());
 
     println!("Verificando assinaturas");
 
@@ -55,7 +55,7 @@ fn main() {
         assert_eq!(tc, *tracking_code);
         prev_hash = tc;
     }
-    let to_hash = (prev_hash, b"CLOSE");
+    let to_hash = (prev_hash, "CLOSE");
     let hash: String = hash2str(&to_hash);
     assert_eq!(hash, head);
 

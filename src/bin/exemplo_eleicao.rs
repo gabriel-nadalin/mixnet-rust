@@ -1,4 +1,4 @@
-use e2easy_pc::{io_helpers::write_json_to_file, types::config::*, utils::random_element};
+use e2easy_pc::{io_helpers::write_json, types::config::*, utils::random_element};
 
 
 const N: u32 = 5000;
@@ -11,7 +11,7 @@ fn main() {
     let config = ElectionConfig {
         crypto: CryptoParams {
             h: random_element(),
-            h_list: (0..N).into_iter().map(|_| random_element()).collect::<Vec<_>>(),
+            h_list_seed: "3.141592653589793238462643383279502".into(),
         },
         contests: (0..CONTESTS)
             .into_iter()
@@ -27,6 +27,6 @@ fn main() {
             }).collect(),
     };
     
-    write_json_to_file(&config, "./config/election_config.json").unwrap();
+    write_json(&config, "./config/election_config.json", None::<&()>).unwrap();
     println!("Arquivos criados em /config/");
 }

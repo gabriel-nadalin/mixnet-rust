@@ -4,7 +4,7 @@ use crate::{Element};
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct CryptoParams {
     pub h: Element,          // the base generator for commitments
-    pub h_list: Vec<Element> // per-contest generators
+    pub h_list_seed: String  // per-contest generators
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]

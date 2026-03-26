@@ -137,7 +137,7 @@ impl CommittedBallot {
         }
     }
 
-    pub fn components(&self) -> (&String, &[Element], &str) {
+    pub fn components(&self) -> (&str, &[Element], &str) {
         (&self.tracking_code, &self.committed_votes, &self.timestamp)
     }
 

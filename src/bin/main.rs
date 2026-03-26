@@ -1,4 +1,4 @@
-use e2easy_pc::{e2easy::E2Easy, io_helpers::{read_json, write_json_to_file}, pedersen::Pedersen, types::*, verifier::Verifier};
+use e2easy_pc::{e2easy::E2Easy, io_helpers::{read_json, write_json}, pedersen::Pedersen, types::*, utils::derive_h_list, verifier::Verifier};
 use std::time::Instant;
 
 #[cfg(target_arch = "x86_64")]
@@ -15,18 +15,16 @@ fn main() {
     let voters: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(500);
 
     let election_config: ElectionConfig = read_json("./config/election_config.json").unwrap();
-    let available = election_config.crypto.h_list.len() / election_config.contests.len();
-    let n = (voters).min(available);
     
-    let (h, h_list) = (election_config.crypto.h, election_config.crypto.h_list.iter().take(n * election_config.contests.len()).cloned().collect::<Vec<_>>());
-    let mut e2easy = E2Easy::new(&h, h_list.clone());
+    let (h, h_list_seed) = (election_config.crypto.h, election_config.crypto.h_list_seed);
+    let mut e2easy = E2Easy::new(&h, h_list_seed.clone(), None);
     
-    println!("N = {:?}", n);
+    println!("N = {:?}", voters);
     
     let mut vote_cycles: u64 = 0;
     let mut cast_cycles: u64 = 0;
     // Simulate voting: all voters cast their votes (no challenges)
-    for i in 0..n {
+    for i in 0..voters {
         let mut votes = Vec::new();
         
         // Vote for each contest defined in election_config
@@ -66,7 +64,7 @@ fn main() {
     let verifying_start = Instant::now();
     let cycles_start = unsafe { rdtsc() };
 
-    let verifier = Verifier::new(h_list);
+    let verifier = Verifier::new(derive_h_list(&h_list_seed, commit_list.len()));
     let verifying_result = verifier.check_proof(&zkp_output.shuffle_proof, &commit_list, commit_prime_list);
     assert!(verifying_result);
 
@@ -88,13 +86,8 @@ fn main() {
     println!("Commits verifying time: {:?}", commits_time);
     println!("Commits verifying cycles: {:?}", commit_cycles);
 
-    write_json_to_file(&rdv_prime, "./outputs/rdv_prime.json").unwrap();
-    write_json_to_file(&rdcv, "./outputs/rdcv.json").unwrap();
-    write_json_to_file(&rdcv_prime, "./outputs/rdcv_prime.json").unwrap();
-    write_json_to_file(&zkp_output, "./outputs/zkp_output.json").unwrap();
-
-    write_json_to_file(&e2easy.sign(&rdv_prime), "./outputs/rdv_prime.sig").unwrap();
-    write_json_to_file(&e2easy.sign(&rdcv), "./outputs/rdcv.sig").unwrap();
-    write_json_to_file(&e2easy.sign(&rdcv_prime), "./outputs/rdcv_prime.sig").unwrap();
-    write_json_to_file(&e2easy.sign(&zkp_output), "./outputs/zkp_output.sig").unwrap();
+    write_json(&rdv_prime,  "./outputs/rdv_prime.json",  Some(&e2easy.sign(&rdv_prime))).unwrap();
+    write_json(&rdcv,       "./outputs/rdcv.json",        Some(&e2easy.sign(&rdcv))).unwrap();
+    write_json(&rdcv_prime, "./outputs/rdcv_prime.json",  Some(&e2easy.sign(&rdcv_prime))).unwrap();
+    write_json(&zkp_output, "./outputs/zkp_output.json",  Some(&e2easy.sign(&zkp_output))).unwrap();
 }

@@ -21,8 +21,8 @@ fn e2easy_new() -> Option<repr_c::Box<E2Easy>> {
         }
     };
 
-    let (h, h_list) = (election_config.crypto.h, election_config.crypto.h_list);
-    Some(Box::new(E2Easy::new(&h, h_list.to_vec())).into())
+    let (h, h_list_seed) = (election_config.crypto.h, election_config.crypto.h_list_seed);
+    Some(Box::new(E2Easy::new(&h, h_list_seed, None)).into())
 }
 
 #[ffi_export]
@@ -61,10 +61,10 @@ fn e2easy_vote(
 fn e2easy_challenge(
     handle: &mut repr_c::Box<E2Easy>,
 ) -> JsonResult {
-    let (tracking_code, committed_votes, nonce_seed) = handle.challenge();
+    let (previous_tracking_code, committed_votes, nonce_seed) = handle.challenge();
     
     let result = serde_json::json!({
-        "tracking_code": tracking_code,
+        "previous_tracking_code": previous_tracking_code,
         "committed_votes": committed_votes,
         "nonce_seed": nonce_seed
     });
